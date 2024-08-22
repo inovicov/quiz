@@ -1,5 +1,11 @@
+import { QuizScreen } from './screens'
+
 const App = () => {
-  return <div>App</div>
+  return (
+    <>
+      <QuizScreen />
+    </>
+  )
 }
 
 export default App
