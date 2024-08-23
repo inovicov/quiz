@@ -2,6 +2,7 @@ import {
   createContext,
   ReactNode,
   useCallback,
+  useEffect,
   useMemo,
   useReducer,
 } from 'react'
@@ -9,6 +10,7 @@ import {
   INITIAL_STATE,
   quizReducer,
   QuizActionType,
+  stateInitializer,
 } from './quiz-context-reducer.ts'
 import { QUESTIONS } from 'common/data-source'
 import { Answer, Question, QuizProgress, UserAnswer } from 'common/types'
@@ -47,9 +49,18 @@ type QuizContextProviderProps = {
 }
 
 export const QuizContextProvider = ({ children }: QuizContextProviderProps) => {
-  const [state, dispatch] = useReducer(quizReducer, INITIAL_STATE)
+  const [state, dispatch] = useReducer(
+    quizReducer,
+    INITIAL_STATE,
+    stateInitializer,
+  )
 
   const { step, answers } = state
+
+  useEffect(() => {
+    localStorage.setItem('step', JSON.stringify(step))
+    localStorage.setItem('answers', JSON.stringify(answers))
+  }, [step, answers])
 
   const incrementStep = useCallback(() => {
     dispatch({
@@ -92,12 +103,14 @@ export const QuizContextProvider = ({ children }: QuizContextProviderProps) => {
     [currentQuestion, dispatch, step],
   )
 
-  const isCompleted = useMemo(
-    () =>
+  const isCompleted = useMemo(() => {
+    if (answers.length === 0) return false
+
+    return (
       step + 2 > QUESTIONS.length &&
-      answers[answers.length - 1].questionId === currentQuestion.id,
-    [step, answers, currentQuestion],
-  )
+      answers[answers.length - 1].questionId === currentQuestion.id
+    )
+  }, [step, answers, currentQuestion])
 
   const restartQuiz = useCallback(() => {
     dispatch({
