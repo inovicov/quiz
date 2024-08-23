@@ -1,7 +1,18 @@
 import { Progress } from 'antd'
+import { useContext, useMemo } from 'react'
+import { QuizContext } from 'common/context'
 
 const QuizProgress = () => {
-  return <Progress percent={30} />
+  const { quizProgress, isCompleted } = useContext(QuizContext)
+  const { step, total } = quizProgress
+
+  const percent = useMemo(() => {
+    const currentStep = isCompleted ? step : step - 1
+    const result = currentStep / (total / 100)
+
+    return +result.toFixed(2)
+  }, [step, total, isCompleted])
+  return <Progress percent={percent} />
 }
 
 export default QuizProgress
