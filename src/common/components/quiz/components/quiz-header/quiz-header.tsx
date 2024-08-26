@@ -10,7 +10,8 @@ const QuizHeader = () => {
     useContext(QuizContext)
 
   const backButton = useMemo(() => {
-    const disabled = step === 0 || isCompleted
+    const [parent, child = 0] = step
+    const disabled = parent + child + 1 === 0 || isCompleted
 
     return (
       <Button

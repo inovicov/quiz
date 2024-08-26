@@ -10,7 +10,7 @@ const QuizProgress = () => {
     const currentStep = isCompleted ? step : step - 1
     const result = currentStep / (total / 100)
 
-    return +result.toFixed(2)
+    return +result.toFixed()
   }, [step, total, isCompleted])
   return <Progress percent={percent} />
 }

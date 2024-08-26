@@ -1,4 +1,4 @@
-import { UserAnswer } from 'common/types'
+import { QuizStepState, UserAnswer } from 'common/types'
 
 export enum QuizActionType {
   INCREMENT_STEP = 'INCREMENT_STEP',
@@ -17,11 +17,12 @@ type QuizAction =
 
 export type IncrementStepAction = {
   type: QuizActionType.INCREMENT_STEP
-  payload?: number
+  payload: QuizStepState
 }
 
 export type DecrementStepAction = {
   type: QuizActionType.DECREMENT_STEP
+  payload: QuizStepState
 }
 
 export type SetAnswersAction = {
@@ -31,7 +32,10 @@ export type SetAnswersAction = {
 
 export type SubmitAnswerAction = {
   type: QuizActionType.SUBMIT_ANSWER
-  payload: UserAnswer
+  payload: {
+    userAnswer: UserAnswer
+    clearOld: boolean
+  }
 }
 
 export type RestartQuizAction = {
@@ -39,12 +43,12 @@ export type RestartQuizAction = {
 }
 
 export type QuizState = {
-  step: number
+  step: QuizStepState
   answers: UserAnswer[]
 }
 
 export const INITIAL_STATE: QuizState = {
-  step: 0,
+  step: [0],
   answers: [],
 }
 
@@ -52,7 +56,7 @@ export const stateInitializer = () => {
   const savedStep = localStorage.getItem('step')
   const savedAnswers = localStorage.getItem('answers')
 
-  const stepValue = savedStep ? parseInt(savedStep) : INITIAL_STATE.step
+  const stepValue = savedStep ? JSON.parse(savedStep) : INITIAL_STATE.step
   const answersValue = savedAnswers
     ? JSON.parse(savedAnswers)
     : INITIAL_STATE.answers
@@ -61,6 +65,29 @@ export const stateInitializer = () => {
     ...INITIAL_STATE,
     step: stepValue,
     answers: answersValue,
+  }
+}
+
+const submitAnswer = (
+  state: QuizState,
+  action: SubmitAnswerAction,
+): QuizState => {
+  const {
+    payload: { userAnswer, clearOld },
+  } = action
+
+  const items = state.answers.filter(
+    ({ questionId }) => questionId !== userAnswer.questionId,
+  )
+  const filteredItems = clearOld
+    ? items.filter(
+        ({ parentQuestionId }) => parentQuestionId !== userAnswer.questionId,
+      )
+    : items
+
+  return {
+    ...state,
+    answers: [...filteredItems, userAnswer],
   }
 }
 
@@ -74,12 +101,12 @@ export const quizReducer = (
     case QuizActionType.INCREMENT_STEP:
       return {
         ...state,
-        step: action.payload ? action.payload : state.step + 1,
+        step: action.payload as QuizStepState,
       }
     case QuizActionType.DECREMENT_STEP:
       return {
         ...state,
-        step: state.step - 1,
+        step: action.payload as QuizStepState,
       }
     case QuizActionType.SET_ANSWERS:
       return {
@@ -87,15 +114,7 @@ export const quizReducer = (
         answers: action.payload,
       }
     case QuizActionType.SUBMIT_ANSWER:
-      return {
-        ...state,
-        answers: [
-          ...state.answers.filter(
-            ({ questionId }) => questionId !== action.payload.questionId,
-          ),
-          action.payload,
-        ],
-      }
+      return submitAnswer(state, action)
     case QuizActionType.RESTART_QUIZ:
       return INITIAL_STATE
     default:

@@ -1,6 +1,7 @@
-import { Button, Form, Radio, Space } from 'antd'
+import { Button, Form, Input, Radio, Space } from 'antd'
 import {
   FC,
+  ReactNode,
   useCallback,
   useContext,
   useEffect,
@@ -9,6 +10,11 @@ import {
 } from 'react'
 import { Question } from 'common/types'
 import { QuizContext } from 'common/context'
+import { QuestionType } from 'common/enums'
+import { useInterval } from 'common/hooks'
+import { ManOutlined, WomanOutlined } from '@ant-design/icons'
+
+const { TextArea } = Input
 
 type AnswerFormProperties = {
   question: Question
@@ -17,14 +23,21 @@ type AnswerFormProperties = {
 type AnswerFormValue = {
   answer: string
 }
+const optionIcons: Record<string, ReactNode> = {
+  male: <ManOutlined />,
+  female: <WomanOutlined />,
+}
+const pickIcon = (option: string) => optionIcons[option]
 
 const AnswerForm: FC<AnswerFormProperties> = ({ question }) => {
   const [submitDisabled, setSubmitDisabled] = useState(true)
   const { submitAnswer, currentAnswer } = useContext(QuizContext)
 
+  const seconds = useInterval()
+
   const [form] = Form.useForm()
 
-  const { id, answerOptions = [] } = question
+  const { id, answerOptions = [], type } = question
 
   const values = Form.useWatch([], form)
 
@@ -52,27 +65,51 @@ const AnswerForm: FC<AnswerFormProperties> = ({ question }) => {
 
   const handleSubmit = useCallback(
     ({ answer }: AnswerFormValue) => {
-      submitAnswer(answer)
+      submitAnswer(answer, seconds)
     },
-    [submitAnswer],
+    [submitAnswer, seconds],
   )
 
-  const formFields = useMemo(
-    () => (
-      <Form.Item name="answer" rules={[{ required: true }]}>
-        <Radio.Group>
-          <Space direction="vertical">
-            {answerOptions?.map((answerOption) => (
-              <Radio key={answerOption} value={answerOption}>
-                {answerOption}
-              </Radio>
-            ))}
-          </Space>
-        </Radio.Group>
-      </Form.Item>
-    ),
-    [answerOptions],
-  )
+  const formFields = useMemo(() => {
+    if (type === QuestionType.SINGLE) {
+      return (
+        <Form.Item name="answer" rules={[{ required: true }]}>
+          <Radio.Group>
+            <Space direction="vertical">
+              {answerOptions?.map((answerOption) => (
+                <Radio key={answerOption} value={answerOption}>
+                  {answerOption}
+                </Radio>
+              ))}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+      )
+    }
+    if (type === QuestionType.SELECT) {
+      return (
+        <Form.Item name="answer" rules={[{ required: true }]}>
+          <Radio.Group>
+            <Space direction="vertical">
+              {answerOptions?.map((answerOption) => (
+                <Radio key={answerOption} value={answerOption}>
+                  {pickIcon(answerOption)} {answerOption}
+                </Radio>
+              ))}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+      )
+    }
+    if (type === QuestionType.TEXT) {
+      return (
+        <Form.Item name="answer" rules={[{ required: true }]}>
+          <TextArea rows={4} />
+        </Form.Item>
+      )
+    }
+  }, [answerOptions, type])
+
   const submitButton = useMemo(
     () => (
       <Button
